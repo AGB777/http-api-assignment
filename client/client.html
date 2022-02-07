@@ -5,7 +5,79 @@
   <link rel="stylesheet" type="text/css" href="/style.css">
   
   <script>
-
+      const handleResponse = (response) => {
+          
+          response.text().then((resText) => {
+              console.log(resText);
+              
+              const content = document.querySelector('#content');
+              const newElements = content.childElementCount === 0;
+              
+              const contentType = response.headers.get('ContentType');
+              
+              const status = content.querySelector('#status') || document.createElement('h1');
+              status.id='status';
+              status.textContent=response.status;
+              
+              const message = content.querySelector('#message') || document.createElement('p');
+              message.id='message';
+              
+              const id = content.querySelector('#id') || document.createElement('h5');
+              id.id='id';
+              
+              switch(contentType){
+                  case 'application/json':
+                      let parsedjson = JSON.parse(resText);
+                      message.textContent=parsedjson.message;
+                      if(parsedjson.id){
+                        id.textContent=parsedjson.id;
+                      }
+                      break;
+                  case 'text/xml':
+                      let parsedxml = new window.DOMParser().parseFromString(resText,'text/xml');
+                      message.textContent=parsedxml.querySelector('message').textContent;
+                      if(parsedxml.querySelector('id')){
+                        id.textContent=parsedxml.querySelector('id').textContent;
+                      }
+                      break;
+                  default:
+                      break;
+              }
+              
+              if(newElements){
+                  content.appendChild(status);
+                  content.appendChild(message);
+                  content.appendChild(id);
+              }
+          });
+      }
+      const sendRequest = (url, acceptableType) => {
+          const options ={
+              method:'GET',
+              headers:{'Accept':acceptableType}
+          };
+          
+          const fetchPromise = fetch(url,options);
+          fetchPromise.then((response) => {handleResponse(response)});
+      }
+      
+      const init = () => {
+          const sendButton = document.querySelector('#send');
+          const pageSelect = document.querySelector('#page');
+          const typeSelect = document.querySelector('#type');
+          const paramKey = document.querySelector('#key');
+          const paramVal = document.querySelector('#value');
+          
+          sendButton.addEventListener('click', (e) => {
+              console.log(pageSelect.value);
+              console.log(typeSelect.value);
+              let url=pageSelect.value+'?'+paramKey.value+'='+paramVal.value;
+              sendRequest(url, typeSelect.value);
+          });
+      }
+      
+      window.onload = init;
+      
   </script>
 </head>
 <body>
@@ -25,6 +97,11 @@
       <option value="text/xml">XML</option>
     </select>
     <button id="send">Send</button>
+      <h4>optional parameter</h4>
+      <label for="key">Key:</label>
+      <input type="text" id="key">
+      <label for="value">Value:</label>
+      <input type="text" id="value">
   </section>
   <section id="content">
   </section>
